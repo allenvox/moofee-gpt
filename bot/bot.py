@@ -1,37 +1,30 @@
-import os
-import logging
-import traceback
 import html
 import json
+import logging
+import os
+import traceback
 from datetime import datetime
 
+import chatgpt
+import database
 import telegram
-from telegram import Update, User, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CallbackContext,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    filters
-)
-from telegram.constants import ParseMode, ChatAction
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, User
+from telegram.constants import ChatAction, ParseMode
+from telegram.ext import (ApplicationBuilder, CallbackContext,
+                          CallbackQueryHandler, CommandHandler, MessageHandler,
+                          filters)
 
 import config
-import database
-import chatgpt
-
 
 # setup
 db = database.Database()
 logger = logging.getLogger(__name__)
 
 HELP_MESSAGE = """Commands:
-⚪ /retry – Regenerate last bot answer
-⚪ /new – Start new dialog
-⚪ /mode – Select chat mode
-⚪ /balance – Show balance
-⚪ /help – Show help
+/retry – Regenerate last bot answer
+/new – Start new dialog
+/mode – Select chat mode
+/help – Show help
 """
 
 async def register_user_if_not_exists(update: Update, context: CallbackContext, user: User):
@@ -186,22 +179,6 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext):
 
     await query.edit_message_text(f"{chatgpt.CHAT_MODES[chat_mode]['welcome_message']}", parse_mode=ParseMode.HTML)
 
-
-async def show_balance_handle(update: Update, context: CallbackContext):
-    await register_user_if_not_exists(update, context, update.message.from_user)
-
-    user_id = update.message.from_user.id
-    db.set_user_attribute(user_id, "last_interaction", datetime.now())
-
-    n_used_tokens = db.get_user_attribute(user_id, "n_used_tokens")
-    n_spent_dollars = n_used_tokens * (0.01 / 1000)
-
-    text = f"You spent <b>{n_spent_dollars:.03f}$</b>\n"
-    text += f"You used <b>{n_used_tokens}</b> tokens <i>(price: 0.01$ per 1000 tokens)</i>\n"
-
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-
-
 async def edited_message_handle(update: Update, context: CallbackContext):
     text = "🥲 Unfortunately, message <b>editing</b> is not supported"
     await update.edited_message.reply_text(text, parse_mode=ParseMode.HTML)
@@ -245,16 +222,11 @@ def run_bot() -> None:
 
     application.add_handler(CommandHandler("start", start_handle, filters=user_filter))
     application.add_handler(CommandHandler("help", help_handle, filters=user_filter))
-
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, message_handle))
     application.add_handler(CommandHandler("retry", retry_handle, filters=user_filter))
     application.add_handler(CommandHandler("new", new_dialog_handle, filters=user_filter))
-    
     application.add_handler(CommandHandler("mode", show_chat_modes_handle, filters=user_filter))
     application.add_handler(CallbackQueryHandler(set_chat_mode_handle, pattern="^set_chat_mode"))
-
-    application.add_handler(CommandHandler("balance", show_balance_handle, filters=user_filter))
-    
     application.add_error_handler(error_handle)
     
     # start the bot
