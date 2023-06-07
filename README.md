@@ -26,17 +26,10 @@ This repo is ChatGPT re-created with GPT-3.5 LLM as Telegram Bot. **And it works
 
 2. Get your Telegram bot token from [@BotFather](https://t.me/BotFather)
 
-3. Edit `config/config.example.yml` to set your tokens and run 2 commands below (*if you're advanced user, you can also edit* `config/config.example.env`):
-```bash
-mv config/config.example.yml config/config.yml
-mv config/config.example.env config/config.env
-```
+3. Edit `config/config.example.yml` to set your tokens and remove '.example' from file names (*if you're advanced user, you can also edit* `config/config.example.env`)
 
-🔥 And now **run**:
+4. **Run** 🔥:
 
 ```bash
-docker-compose --env-file config/config.env up --build
+./run.sh
 ```
-
-## References
-1. [*Build ChatGPT from GPT-3*](https://learnprompting.org/docs/applied_prompting/build_chatgpt)
